@@ -1,6 +1,7 @@
 import pygame
 import random
 from guiInputText import InputBox
+from chessmodel import ChessModel
 
 pygame.init()
 size = (1600, 800)
@@ -36,13 +37,38 @@ game_select_input_boxes = [input_join_by_id]
 
 pygame.font.init()
 font = pygame.font.SysFont("Comic Sans MS", 30)
+font2 = pygame.font.SysFont("Comic Sans MS", 18)
+
+beard = ChessModel()
+print(beard.FENdecoder())
+
+piece_set = pygame.image.load("pieceSet2.png")
+
+piece_map = {
+    "r": (0, 0, 100, 100),
+    "b": (100, 0, 100, 100),
+    "q": (200, 0, 100, 100),
+    "k": (300, 0, 100, 100),
+    "n": (400, 0, 100, 100),
+    "p": (500, 0, 100, 100),
+
+    "R": (0, 100, 100, 100),
+    "B": (100, 100, 100, 100),
+    "Q": (200, 100, 100, 100),
+    "K": (300, 100, 100, 100),
+    "N": (400, 100, 100, 100),
+    "P": (500, 100, 100, 100),
+    "X": (0, 0, 0, 0)
+}
 
 
-def isMouseInRegion(mx, my, rx1, ry1, rx2, ry2):
-    if rx1 < mx < rx1 + rx2 and ry1 < my < ry1 + ry2:
+def isMouseInRegion(mx, my, rx1, ry1, w, h):
+    if rx1 < mx < rx1 + w and ry1 < my < ry1 + h:
         return True
     return False
 
+
+player_white = True
 
 while carryOn:
     for event in pygame.event.get():
@@ -73,23 +99,62 @@ while carryOn:
                 # create
                 if isMouseInRegion(mousePos[0], mousePos[1], 1200, 550, 200, 50):
                     game_select_input_boxes[0].text = random.randint(0, 1000)
-                #scoreboard
-                if isMouseInRegion(mousePos[0], mousePos[1],  950, 625, 325, 50):
-                    is_gameselect=False
-                    is_scoreboard=True
-
+                # scoreboard
+                if isMouseInRegion(mousePos[0], mousePos[1], 950, 625, 325, 50):
+                    is_gameselect = False
+                    is_scoreboard = True
         for box in login_input_boxes:
             box.handle_event(event)
         for box in game_select_input_boxes:
             box.handle_event(event)
+
     screen.fill(C_BACKGROUND)
 
+    indexes = ["abcdefgh", "12345678"]
     for i in range(8):
         for j in range(8):
-            if (i + j) % 2 == 0:
-                pygame.draw.rect(screen, C_WHITE, pygame.Rect(100 * i, 100 * j, 100, 100))
+            if player_white:
+                if (i + j) % 2 == 0:
+                    pygame.draw.rect(screen, C_WHITE, pygame.Rect(100 * i, 100 * j, 100, 100))
+                    if j == 7:
+                        textsurface = font2.render(indexes[0][i], False, C_BLACK)
+                        screen.blit(textsurface, (100 * i + 80, 770))
+                    if i == 0:
+                        textsurface = font2.render(indexes[1][7 - j], False, C_BLACK)
+                        screen.blit(textsurface, (10, 100 * j + 10))
+                else:
+                    pygame.draw.rect(screen, C_BLACK, pygame.Rect(100 * i, 100 * j, 100, 100))
+                    if j == 7:
+                        textsurface = font2.render(indexes[0][i], False, C_WHITE)
+                        screen.blit(textsurface, (100 * i + 80, 770))
+                    if i == 0:
+                        textsurface = font2.render(indexes[1][7 - j], False, C_WHITE)
+                        screen.blit(textsurface, (10, 100 * j + 10))
             else:
-                pygame.draw.rect(screen, C_BLACK, pygame.Rect(100 * i, 100 * j, 100, 100))
+                if (i + j) % 2 == 0:
+                    pygame.draw.rect(screen, C_WHITE, pygame.Rect(100 * i, 100 * j, 100, 100))
+                    if j == 7:
+                        textsurface = font2.render(indexes[0][7 - i], False, C_BLACK)
+                        screen.blit(textsurface, (100 * i + 80, 770))
+                    if i == 0:
+                        textsurface = font2.render(indexes[1][j], False, C_BLACK)
+                        screen.blit(textsurface, (10, 100 * j + 10))
+                else:
+                    pygame.draw.rect(screen, C_BLACK, pygame.Rect(100 * i, 100 * j, 100, 100))
+                    if j == 7:
+                        textsurface = font2.render(indexes[0][7 - i], False, C_WHITE)
+                        screen.blit(textsurface, (100 * i + 80, 770))
+                    if i == 0:
+                        textsurface = font2.render(indexes[1][j], False, C_WHITE)
+                        screen.blit(textsurface, (10, 100 * j + 10))
+    current_fen = beard.FENdecoder()
+    for i in range(8):
+        for j in range(8):
+            if player_white:
+                screen.blit(piece_set, (i * 100, j * 100), piece_map[current_fen[7 - j][i]])
+            else:
+                screen.blit(piece_set, (i * 100, j * 100), piece_map[current_fen[j][7 - i]])
+
     if is_login:
         for box in login_input_boxes:
             box.draw(screen)
