@@ -17,19 +17,20 @@ class ChessModel:
             self.game.set_fen(FEN)
             return FEN
 
-    def FENdecoder(self) -> list:
-        retArr = [[], [], [], [], [], [], [], []]
-        ptr = 0
-        for character in self.FEN:
-            if character == ' ':
-                break
-            if character != '/':
-                if character.isnumeric():
-                    for i in range(int(character)):
-                        retArr[7 - ptr // 8].append('X')
-                    ptr += int(character)
-                else:
-                    retArr[7 - ptr // 8].append(character)
-                    ptr += 1
 
-        return retArr
+def FENdecoder(FEN) -> list:
+    retArr = [[], [], [], [], [], [], [], []]
+    ptr = 0
+    for character in FEN:
+        if character == ' ':
+            break
+        if character != '/':
+            if character.isnumeric():
+                for i in range(int(character)):
+                    retArr[7 - ptr // 8].append('X')
+                ptr += int(character)
+            else:
+                retArr[7 - ptr // 8].append(character)
+                ptr += 1
+
+    return retArr

@@ -22,10 +22,17 @@ def register(nick, password, email):
     return None
 def join(gid, uid):
     resp = requests.put('http://127.0.0.1:5000/join_game', json={'game_id': gid, 'user_id': uid})
-    if resp.json()['status'] == 'ok':
-        return resp.json()['game_id']
+    json_resp = resp.json()
+    if json_resp["status"] == 'ok':
+        return json_resp['game_id']
     else:
-        return resp.json()['status']
+        return json_resp["status"]
+def push_game(gid, uid, move):
+    resp = requests.put('http://127.0.0.1:5000/game?id='+gid, json={'user_id': uid, 'move': move, 'time_left': 500})
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        return None
 
 
 

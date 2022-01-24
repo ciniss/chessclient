@@ -1,7 +1,8 @@
+import chess
 import pygame
 import random
 from guiInputText import InputBox
-from chessmodel import ChessModel
+from chessmodel import ChessModel, FENdecoder
 import RequestHandler
 
 pygame.init()
@@ -35,6 +36,9 @@ input_join_by_id = InputBox(900, 300, 300, 100, "ID")
 USER_ID = "none"
 GAME_ID = "none"
 
+SELECTED_PREV = ""
+SELECTED_CURRENT = ""
+
 login_input_boxes = [input_login_login, input_login_password, input_register_login, input_register_password,
                      input_register_email]
 game_select_input_boxes = [input_join_by_id]
@@ -44,7 +48,8 @@ font = pygame.font.SysFont("Comic Sans MS", 30)
 font2 = pygame.font.SysFont("Comic Sans MS", 18)
 
 beard = ChessModel()
-print(beard.FENdecoder())
+
+globFEN = chess.STARTING_FEN
 
 piece_set = pygame.image.load("pieceSet2.png")
 
@@ -119,17 +124,29 @@ while carryOn:
                     is_gameselect = False
                     is_scoreboard = True
             if is_game:
+
                 move = ""
                 if isMouseInRegion(mousePos[0], mousePos[1], 0, 0, 800, 800):
                     if player_white:
                         x = mousePos[0] // 100 + 97
                         y = 8 - mousePos[1] // 100
-                        move = chr(x) + str(y)
+                        if len(SELECTED_PREV) == 0:
+                            SELECTED_PREV = chr(x) + str(y)
+                        else:
+                            SELECTED_CURRENT = chr(x) + str(y)
                     else:
                         x = (7 - mousePos[0] // 100) + 97
                         y = mousePos[1] // 100 + 1
-                        move = chr(x) + str(y)
-
+                        if len(SELECTED_PREV) == 0:
+                            SELECTED_PREV = chr(x) + str(y)
+                        else:
+                            SELECTED_CURRENT = chr(x) + str(y)
+                    if len(SELECTED_CURRENT) == 2:
+                        move = SELECTED_PREV+SELECTED_CURRENT
+                    if len(move) == 4:
+                        status = RequestHandler.push_game(GAME_ID, USER_ID, move)
+                        if status is not None:
+                            globFEN =status['fen']
         for box in login_input_boxes:
             box.handle_event(event)
         for box in game_select_input_boxes:
@@ -175,7 +192,7 @@ while carryOn:
                     if i == 0:
                         textsurface = font2.render(indexes[1][j], False, C_WHITE)
                         screen.blit(textsurface, (10, 100 * j + 10))
-    current_fen = beard.FENdecoder()
+    current_fen = FENdecoder(globFEN)
     """
         Piece rendering
     """
