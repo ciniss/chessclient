@@ -2,6 +2,7 @@ import pygame
 import random
 from guiInputText import InputBox
 from chessmodel import ChessModel
+import RequestHandler
 
 pygame.init()
 size = (1600, 800)
@@ -30,6 +31,9 @@ input_register_password = InputBox(1200, 300, 300, 100, "PASSWORD")
 input_register_email = InputBox(1200, 400, 400, 100, "EMAIL")
 
 input_join_by_id = InputBox(900, 300, 300, 100, "ID")
+
+USER_ID = "none"
+GAME_ID = "none"
 
 login_input_boxes = [input_login_login, input_login_password, input_register_login, input_register_password,
                      input_register_email]
@@ -68,7 +72,7 @@ def isMouseInRegion(mx, my, rx1, ry1, w, h):
     return False
 
 
-player_white = True
+player_white = False
 
 while carryOn:
     for event in pygame.event.get():
@@ -79,30 +83,53 @@ while carryOn:
             # login
             if is_login:
                 if isMouseInRegion(mousePos[0], mousePos[1], 950, 550, 100, 50):
-                    for b in login_input_boxes:
-                        b.text = ""
-                    is_login = False
-                    is_gameselect = True
+                    username = login_input_boxes[0].text
+                    password = login_input_boxes[1].text
+                    uid = RequestHandler.login(username, password)
+                    if uid != "-1":
+                        USER_ID = uid
+                        is_login = False
+                        is_gameselect = True
                 # register
                 if isMouseInRegion(mousePos[0], mousePos[1], 1200, 550, 200, 50):
-                    for b in login_input_boxes:
-                        b.text = ""
-                    is_login = False
-                    is_gameselect = True
+                    username = login_input_boxes[2].text
+                    password = login_input_boxes[3].text
+                    email = login_input_boxes[4].text
+                    uid = RequestHandler.register(username, password, email)
+                    if uid is not None:
+                        USER_ID = uid
+                        is_login = False
+                        is_gameselect = True
+                print(USER_ID)
             elif is_gameselect:
                 # join
                 if isMouseInRegion(mousePos[0], mousePos[1], 950, 550, 100, 50):
                     # create game
-                    is_gameselect = False;
-                    pass
+                    gid = game_select_input_boxes[0].text
+                    n_gid = RequestHandler.join(gid, USER_ID)
+                    if gid == n_gid:
+                        GAME_ID = gid
+                        is_gameselect = False
                     # is_game=True
                 # create
                 if isMouseInRegion(mousePos[0], mousePos[1], 1200, 550, 200, 50):
-                    game_select_input_boxes[0].text = random.randint(0, 1000)
+                    game_select_input_boxes[0].set_text(RequestHandler.get_create_game())
                 # scoreboard
                 if isMouseInRegion(mousePos[0], mousePos[1], 950, 625, 325, 50):
                     is_gameselect = False
                     is_scoreboard = True
+            if is_game:
+                move = ""
+                if isMouseInRegion(mousePos[0], mousePos[1], 0, 0, 800, 800):
+                    if player_white:
+                        x = mousePos[0] // 100 + 97
+                        y = 8 - mousePos[1] // 100
+                        move = chr(x) + str(y)
+                    else:
+                        x = (7 - mousePos[0] // 100) + 97
+                        y = mousePos[1] // 100 + 1
+                        move = chr(x) + str(y)
+
         for box in login_input_boxes:
             box.handle_event(event)
         for box in game_select_input_boxes:
@@ -111,6 +138,7 @@ while carryOn:
     screen.fill(C_BACKGROUND)
 
     indexes = ["abcdefgh", "12345678"]
+    # Rendering
     for i in range(8):
         for j in range(8):
             if player_white:
@@ -148,6 +176,9 @@ while carryOn:
                         textsurface = font2.render(indexes[1][j], False, C_WHITE)
                         screen.blit(textsurface, (10, 100 * j + 10))
     current_fen = beard.FENdecoder()
+    """
+        Piece rendering
+    """
     for i in range(8):
         for j in range(8):
             if player_white:
@@ -169,9 +200,10 @@ while carryOn:
         screen.blit(textsurface, (1220, 550))
     if is_gameselect:
         for box in game_select_input_boxes:
-            box.update()
-        for box in game_select_input_boxes:
             box.draw(screen)
+        for box in game_select_input_boxes:
+            box.update()
+
         pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(950, 550, 100, 50))
         textsurface = font.render("JOIN", False, (0, 0, 0))
         screen.blit(textsurface, (950, 550))
