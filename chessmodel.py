@@ -19,7 +19,14 @@ class ChessModel:
 
 
 def FENdecoder(FEN) -> list:
-    retArr = [[], [], [], [], [], [], [], []]
+    retArr = [['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+              ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+              ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+              ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+              ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+              ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+              ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+              ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X']]
     ptr = 0
     for character in FEN:
         if character == ' ':
@@ -27,10 +34,10 @@ def FENdecoder(FEN) -> list:
         if character != '/':
             if character.isnumeric():
                 for i in range(int(character)):
-                    retArr[7 - ptr // 8].append('X')
-                ptr += int(character)
+                    retArr[7 - ptr // 8][ptr % 8] = 'X'
+                    ptr += 1
             else:
-                retArr[7 - ptr // 8].append(character)
+                retArr[7 - ptr // 8][ptr % 8] = character
                 ptr += 1
 
     return retArr

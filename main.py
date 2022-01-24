@@ -139,15 +139,15 @@ while carryOn:
                     is_gameselect = False
                     is_scoreboard = True
             if is_game:
-                move = ""
+                move=""
                 if isMouseInRegion(mousePos[0], mousePos[1], 0, 0, 800, 800):
                     if player_white:
                         x = mousePos[0] // 100 + 97
                         y = 8 - mousePos[1] // 100
                         if len(SELECTED_PREV) == 0:
                             SELECTED_PREV = chr(x) + str(y)
-                            selected[0] = x//100
-                            selected[1] = y//100
+                            selected[0] = mousePos[0]//100
+                            selected[1] = mousePos[1]//100
                         else:
                             SELECTED_CURRENT = chr(x) + str(y)
                     else:
@@ -164,7 +164,9 @@ while carryOn:
                         status = RequestHandler.push_game(GAME_ID, USER_ID, move)
                         if status is not None:
                             globFEN = status['fen']
-                            move=""
+                        SELECTED_PREV = ""
+                        SELECTED_CURRENT = ""
+                        selected = [-1, -1, -1, -1]
                 print(move)
         for box in login_input_boxes:
             box.handle_event(event)
