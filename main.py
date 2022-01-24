@@ -15,12 +15,12 @@ pygame.display.set_caption("Chess")
 C_BACKGROUND = (0, 0, 0)
 C_BLACK = (12, 24, 56)
 C_WHITE = (145, 170, 57)
-
+C_SELECTED = (255, 255, 255)
 carryOn = True
 clock = pygame.time.Clock()
 
 game_str = ""
-
+GLOBAL_UPDATE_INTERVAL_15MS = 60
 is_login = True
 is_scoreboard = False
 is_gameselect = False
@@ -38,6 +38,7 @@ GAME_ID = "none"
 
 SELECTED_PREV = ""
 SELECTED_CURRENT = ""
+selected = [-1, -1, -1, -1]
 
 login_input_boxes = [input_login_login, input_login_password, input_register_login, input_register_password,
                      input_register_email]
@@ -78,8 +79,17 @@ def isMouseInRegion(mx, my, rx1, ry1, w, h):
 
 
 player_white = False
-
+t = GLOBAL_UPDATE_INTERVAL_15MS
 while carryOn:
+    if is_game:
+        if t == 0:
+            t = GLOBAL_UPDATE_INTERVAL_15MS
+            fen = RequestHandler.get_update_game(GAME_ID, USER_ID)
+            if fen != '':
+                globFEN = fen
+            print('update')
+        else:
+            t -= 1
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             carryOn = False
@@ -111,11 +121,16 @@ while carryOn:
                 if isMouseInRegion(mousePos[0], mousePos[1], 950, 550, 100, 50):
                     # create game
                     gid = game_select_input_boxes[0].text
-                    n_gid = RequestHandler.join(gid, USER_ID)
+                    n_gid, color = RequestHandler.join(gid, USER_ID)
                     if gid == n_gid:
                         GAME_ID = gid
                         is_gameselect = False
-                    # is_game=True
+                        if color == 'w':
+                            player_white = True
+                        else:
+                            player_white = False
+                    is_gameselect=False
+                    is_game=True
                 # create
                 if isMouseInRegion(mousePos[0], mousePos[1], 1200, 550, 200, 50):
                     game_select_input_boxes[0].set_text(RequestHandler.get_create_game())
@@ -124,7 +139,6 @@ while carryOn:
                     is_gameselect = False
                     is_scoreboard = True
             if is_game:
-
                 move = ""
                 if isMouseInRegion(mousePos[0], mousePos[1], 0, 0, 800, 800):
                     if player_white:
@@ -132,21 +146,26 @@ while carryOn:
                         y = 8 - mousePos[1] // 100
                         if len(SELECTED_PREV) == 0:
                             SELECTED_PREV = chr(x) + str(y)
+                            selected[0] = x//100
+                            selected[1] = y//100
                         else:
                             SELECTED_CURRENT = chr(x) + str(y)
                     else:
                         x = (7 - mousePos[0] // 100) + 97
                         y = mousePos[1] // 100 + 1
+
                         if len(SELECTED_PREV) == 0:
                             SELECTED_PREV = chr(x) + str(y)
                         else:
                             SELECTED_CURRENT = chr(x) + str(y)
                     if len(SELECTED_CURRENT) == 2:
-                        move = SELECTED_PREV+SELECTED_CURRENT
+                        move = SELECTED_PREV + SELECTED_CURRENT
                     if len(move) == 4:
                         status = RequestHandler.push_game(GAME_ID, USER_ID, move)
                         if status is not None:
-                            globFEN =status['fen']
+                            globFEN = status['fen']
+                            move=""
+                print(move)
         for box in login_input_boxes:
             box.handle_event(event)
         for box in game_select_input_boxes:
@@ -175,6 +194,8 @@ while carryOn:
                     if i == 0:
                         textsurface = font2.render(indexes[1][7 - j], False, C_WHITE)
                         screen.blit(textsurface, (10, 100 * j + 10))
+                if i == selected[0] and j == selected[1]:
+                    pygame.draw.rect(screen, C_SELECTED, pygame.Rect(100 * i, 100 * j, 100, 100))
             else:
                 if (i + j) % 2 == 0:
                     pygame.draw.rect(screen, C_WHITE, pygame.Rect(100 * i, 100 * j, 100, 100))
