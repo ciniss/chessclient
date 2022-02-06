@@ -1,6 +1,8 @@
 import chess
 import pygame
 import random
+
+import chessmodel
 from guiInputText import InputBox
 from chessmodel import ChessModel, FENdecoder
 import RequestHandler
@@ -12,10 +14,15 @@ screen = pygame.display.set_mode(size)
 pygame.display.set_caption("Chess")
 
 # COLORS
-C_BACKGROUND = (0, 0, 0)
-C_BLACK = (12, 24, 56)
-C_WHITE = (145, 170, 57)
+#312E2B
+C_BACKGROUND = (0x31, 0x2e,0x2b)
+##B58863
+C_BLACK = (0xb5, 0x88, 0x63)
+#F0D9B5
+C_WHITE = (0xf0, 0xd9, 0xb5)
 C_SELECTED = (255, 255, 255)
+#95BB4A
+C_BUTTON = (0x95, 0xBB, 0x4A)
 carryOn = True
 clock = pygame.time.Clock()
 
@@ -45,14 +52,20 @@ login_input_boxes = [input_login_login, input_login_password, input_register_log
 game_select_input_boxes = [input_join_by_id]
 
 pygame.font.init()
-font = pygame.font.SysFont("Comic Sans MS", 30)
-font2 = pygame.font.SysFont("Comic Sans MS", 18)
+font = pygame.font.SysFont("Arial", 30)
+font2 = pygame.font.SysFont("Arial", 18)
+
+
 
 beard = ChessModel()
 
 globFEN = chess.STARTING_FEN
 
 piece_set = pygame.image.load("pieceSet2.png")
+
+white_timer, black_timer = 0, 0
+
+black_username, white_username = "", ""
 
 piece_map = {
     "r": (0, 0, 100, 100),
@@ -80,16 +93,52 @@ def isMouseInRegion(mx, my, rx1, ry1, w, h):
 
 player_white = False
 t = GLOBAL_UPDATE_INTERVAL_15MS
+is_scoreboard_fetched = False
+scoreboard = []
+GAME_STATUS = "waiting"
+GS_DICT = {
+    "white_win": "White player won!",
+    "black_win": "Black player won!",
+    "draw": "Draw!",
+    "waiting": "Waiting for the game to start!",
+    "playing": "It's your time to shine little star!"
+}
 while carryOn:
+    screen.fill(C_BACKGROUND)
     if is_game:
+        status_font = pygame.font.SysFont("Arial", 30)
+        status_surface = status_font.render(GS_DICT[GAME_STATUS], True, C_BUTTON)
+        screen.blit(status_surface, (1000, 400))
+
         if t == 0:
             t = GLOBAL_UPDATE_INTERVAL_15MS
-            fen = RequestHandler.get_update_game(GAME_ID, USER_ID)
+            #twt, tbt = white_timer, black_timer
+            fen, white_timer, black_timer, white_username, black_username, GAME_STATUS = RequestHandler.get_update_game(GAME_ID, USER_ID)
             if fen != '':
                 globFEN = fen
+            if chessmodel.isWhite(globFEN):
+                black_timer = 0
+            else:
+                white_timer = 0
             print('update')
         else:
             t -= 1
+        white_timer = min(white_timer, 30)
+        black_timer = min(black_timer, 30)
+        print(chessmodel.isWhite(globFEN))
+        if player_white:
+            textsurface = font.render((white_username+" (white) time left: "+str(30-white_timer)), True, (0, 0, 0))
+            pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(1000, 600, 400, 50))
+            screen.blit(textsurface, (1000, 600))
+            textsurface = font.render(black_username+" (black) time left: "+str(30-black_timer), True, (0, 0, 0))
+            pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(1000, 200, 400, 50))
+        else:
+            textsurface = font.render((white_username + " (black) time left: " + str(30 - black_timer)), False,(0, 0, 0))
+            pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(1000, 600, 400, 50))
+            screen.blit(textsurface, (1000, 600))
+            textsurface = font.render(black_username + " (white) time left: " + str(30 - white_timer), False, (0, 0, 0))
+            pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(1000, 200, 400, 50))
+        screen.blit(textsurface, (1000, 200))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             carryOn = False
@@ -129,8 +178,10 @@ while carryOn:
                             player_white = True
                         else:
                             player_white = False
-                    is_gameselect=False
-                    is_game=True
+                        is_gameselect=False
+                        is_game=True
+                    else:
+                        print("ERROR, GAME ID NOT FOUND")
                 # create
                 if isMouseInRegion(mousePos[0], mousePos[1], 1200, 550, 200, 50):
                     game_select_input_boxes[0].set_text(RequestHandler.get_create_game())
@@ -138,7 +189,7 @@ while carryOn:
                 if isMouseInRegion(mousePos[0], mousePos[1], 950, 625, 325, 50):
                     is_gameselect = False
                     is_scoreboard = True
-            if is_game:
+            elif is_game:
                 move=""
                 if isMouseInRegion(mousePos[0], mousePos[1], 0, 0, 800, 800):
                     if player_white:
@@ -153,9 +204,10 @@ while carryOn:
                     else:
                         x = (7 - mousePos[0] // 100) + 97
                         y = mousePos[1] // 100 + 1
-
                         if len(SELECTED_PREV) == 0:
                             SELECTED_PREV = chr(x) + str(y)
+                            selected[0] = mousePos[0]//100
+                            selected[1] = mousePos[1]//100
                         else:
                             SELECTED_CURRENT = chr(x) + str(y)
                     if len(SELECTED_CURRENT) == 2:
@@ -168,12 +220,17 @@ while carryOn:
                         SELECTED_CURRENT = ""
                         selected = [-1, -1, -1, -1]
                 print(move)
+            elif is_scoreboard:
+                if isMouseInRegion(mousePos[0], mousePos[1], 1000, 0, 600, 800):
+                    is_scoreboard = False
+                    is_gameselect = True
+                    is_scoreboard_fetched = False
         for box in login_input_boxes:
             box.handle_event(event)
         for box in game_select_input_boxes:
             box.handle_event(event)
 
-    screen.fill(C_BACKGROUND)
+
 
     indexes = ["abcdefgh", "12345678"]
     # Rendering
@@ -196,8 +253,7 @@ while carryOn:
                     if i == 0:
                         textsurface = font2.render(indexes[1][7 - j], False, C_WHITE)
                         screen.blit(textsurface, (10, 100 * j + 10))
-                if i == selected[0] and j == selected[1]:
-                    pygame.draw.rect(screen, C_SELECTED, pygame.Rect(100 * i, 100 * j, 100, 100))
+
             else:
                 if (i + j) % 2 == 0:
                     pygame.draw.rect(screen, C_WHITE, pygame.Rect(100 * i, 100 * j, 100, 100))
@@ -215,6 +271,8 @@ while carryOn:
                     if i == 0:
                         textsurface = font2.render(indexes[1][j], False, C_WHITE)
                         screen.blit(textsurface, (10, 100 * j + 10))
+            if i == selected[0] and j == selected[1]:
+                pygame.draw.rect(screen, C_SELECTED, pygame.Rect(100 * i, 100 * j, 100, 100))
     current_fen = FENdecoder(globFEN)
     """
         Piece rendering
@@ -232,11 +290,11 @@ while carryOn:
         for box in login_input_boxes:
             box.update()
 
-        pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(950, 550, 100, 50))
+        pygame.draw.rect(screen, C_BUTTON, pygame.Rect(950, 550, 100, 50))
         textsurface = font.render("LOGIN", False, (0, 0, 0))
         screen.blit(textsurface, (950, 550))
         textsurface = font.render("REGISTER", False, (0, 0, 0))
-        pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(1200, 550, 200, 50))
+        pygame.draw.rect(screen, C_BUTTON, pygame.Rect(1200, 550, 200, 50))
         screen.blit(textsurface, (1220, 550))
     if is_gameselect:
         for box in game_select_input_boxes:
@@ -244,14 +302,24 @@ while carryOn:
         for box in game_select_input_boxes:
             box.update()
 
-        pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(950, 550, 100, 50))
+        pygame.draw.rect(screen, C_BUTTON, pygame.Rect(950, 550, 100, 50))
         textsurface = font.render("JOIN", False, (0, 0, 0))
         screen.blit(textsurface, (950, 550))
         textsurface = font.render("CREATE", False, (0, 0, 0))
-        pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(1200, 550, 200, 50))
+        pygame.draw.rect(screen, C_BUTTON, pygame.Rect(1200, 550, 200, 50))
         screen.blit(textsurface, (1220, 550))
         textsurface = font.render("SHOW SCOREBOARD", False, (0, 0, 0))
-        pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(950, 625, 325, 50))
+        pygame.draw.rect(screen, C_BUTTON, pygame.Rect(950, 625, 325, 50))
         screen.blit(textsurface, (950, 625))
+    if is_scoreboard:
+        if not is_scoreboard_fetched:
+            scoreboard = RequestHandler.get_scoreboard()
+            print(scoreboard)
+            is_scoreboard_fetched = True
+        if len(scoreboard) > 0:
+            sfont = font2 = pygame.font.SysFont("Arial", 25)
+            for i in range(len(scoreboard)):
+                stextsurface = sfont.render(str(i) + ". "+scoreboard[i][0] + "   mmr:" + str(scoreboard[i][1]), False, (0xCC, 0xCB, 0xCB))
+                screen.blit(stextsurface, (1000, 50 + i * 75))
     pygame.display.flip()
     clock.tick(60)

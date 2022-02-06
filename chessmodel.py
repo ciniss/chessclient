@@ -18,6 +18,13 @@ class ChessModel:
             return FEN
 
 
+def isWhite(FEN):
+    for i in range(len(FEN)):
+        if FEN[i] == ' ':
+            return True if FEN[i + 1] == 'w' else False
+    return True
+
+
 def FENdecoder(FEN) -> list:
     retArr = [['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
               ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
